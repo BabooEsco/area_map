@@ -3,69 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mappa Interattiva</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+    <title>Mappa Satellitare con Google Maps API</title>
     <style>
         #map { height: 100vh; width: 100%; }
+        #info { font-family: Arial, sans-serif; padding: 10px; }
     </style>
 </head>
 <body>
+    <div id="info"><strong>Disegna un poligono sulla mappa per calcolare l'area.</strong></div>
     <div id="map"></div>
-    <script src="https://unpkg.com/leaflet.gridlayer.googlemutant@latest/Leaflet.GoogleMutant.js"></script>
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+
+    <!-- Includi la Google Maps API con la libreria di disegno e geometria -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDnAh5tcwVLCL6VS0m-dvLNv7fq5NO1MJA&libraries=geometry,drawing"></script>
     <script>
-        // Inizializza la mappa centrata sull'Italia
-        var map = L.map('map').setView([41.9028, 12.4964], 6);
+        let map;
+        let drawingManager;
+        let selectedShape;
 
-// Crea il layer satellitare di Google Maps
-var googleSat = L.gridLayer.googleMutant({
-    type: 'satellite', // Usa il tipo 'satellite' per il layer satellitare
-    maxZoom: 20,
-    apiKey: 'AIzaSyDnAh5tcwVLCL6VS0m-dvLNv7fq5NO1MJA' // Inserisci qui la tua chiave API di Google Maps
-}).addTo(map);
+        function initMap() {
+            // Crea una mappa centrata sull'Italia con il layer satellitare
+            map = new google.maps.Map(document.getElementById("map"), {
+                center: { lat: 41.9028, lng: 12.4964 }, // Roma, Italia
+                zoom: 6,
+                mapTypeId: 'satellite' // Imposta la vista satellitare
+            });
 
-
-        // Aggiungi il plugin Leaflet Draw
-        var drawnItems = new L.FeatureGroup();
-        map.addLayer(drawnItems);
-
-        var drawControl = new L.Control.Draw({
-            edit: {
-                featureGroup: drawnItems
-            },
-            draw: {
-                polyline: false,
-                rectangle: false,
-                circle: false,
-                marker: false,
-                circlemarker: false,
-                polygon: {
-                    allowIntersection: false,
-                    showArea: true
+            // Inizializza il Drawing Manager
+            drawingManager = new google.maps.drawing.DrawingManager({
+                drawingMode: google.maps.drawing.OverlayType.POLYGON,
+                drawingControl: true,
+                drawingControlOptions: {
+                    position: google.maps.ControlPosition.TOP_CENTER,
+                    drawingModes: ['polygon']
+                },
+                polygonOptions: {
+                    fillColor: '#FF0000',
+                    fillOpacity: 0.35,
+                    strokeWeight: 2,
+                    clickable: true,
+                    editable: true,
+                    zIndex: 1
                 }
+            });
+            drawingManager.setMap(map);
+
+            // Evento di completamento disegno
+            google.maps.event.addListener(drawingManager, 'overlaycomplete', function(event) {
+                if (event.type === google.maps.drawing.OverlayType.POLYGON) {
+                    // Rimuovi eventuali poligoni precedenti
+                    if (selectedShape) {
+                        selectedShape.setMap(null);
+                    }
+                    selectedShape = event.overlay;
+
+                    // Calcola e visualizza l'area del poligono
+                    const area = google.maps.geometry.spherical.computeArea(selectedShape.getPath());
+                    const infoContent = "Area: " + area.toFixed(2) + " metri quadrati";
+                    document.getElementById("info").innerHTML = infoContent;
+                    
+                    // Rendi il poligono modificabile e aggiorna l'area quando viene cambiato
+                    google.maps.event.addListener(selectedShape.getPath(), 'set_at', calculateArea);
+                    google.maps.event.addListener(selectedShape.getPath(), 'insert_at', calculateArea);
+                }
+            });
+        }
+
+        // Funzione per calcolare l'area del poligono
+        function calculateArea() {
+            if (selectedShape) {
+                const area = google.maps.geometry.spherical.computeArea(selectedShape.getPath());
+                document.getElementById("info").innerHTML = "Area: " + area.toFixed(2) + " metri quadrati";
             }
-        });
-        map.addControl(drawControl);
+        }
 
-        // Funzione per calcolare l'area del poligono e mostrarla
-        map.on(L.Draw.Event.CREATED, function (event) {
-            var layer = event.layer;
-            drawnItems.addLayer(layer);
-
-            // Calcola l'area del poligono (in metri quadrati)
-            var area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]);
-
-            // Mostra l'area in un popup
-            layer.bindPopup("Area: " + area.toFixed(2) + " metri quadrati").openPopup();
-        });
-
-        var coordinates = layer.getLatLngs()[0].map(function(latlng) {
-    return [latlng.lng, latlng.lat];
-});
-console.log("Coordinate del poligono:", coordinates);
-
+        // Inizializza la mappa
+        window.initMap = initMap;
     </script>
 </body>
 </html>
