@@ -3,21 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mappa Interattiva per Disegno Area</title>
+    <title>Mappa Interattiva Google Maps</title>
     <style>
+        /* Assicurati che la mappa occupi tutta l’altezza della finestra */
         #map { height: 100vh; width: 100%; }
         #info { font-family: Arial, sans-serif; padding: 10px; }
         button { padding: 10px; margin: 10px; }
     </style>
 </head>
 <body>
-    <div id="info"><strong>Disegna un poligono sulla mappa per calcolare l'area.!</strong></div>
+    <div id="info"><strong>Disegna un poligono sulla mappa per calcolare l'area.</strong></div>
     <div id="map"></div>
-    <button onclick="sendData()">Invia Dati a Glide</button>
+    <button onclick="sendData()">Invia Dati a Glide</button>    
 
-    <!-- Google Maps API con la libreria di geometria e disegno -->
+    <!-- Google Maps API con librerie di geometria e disegno -->
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC3GhbbcC0qat6eiFckeb1-Z_mXq5X9RkE&libraries=geometry,drawing"></script>
     <script>
+        // Inizializza la mappa
         let map;
         let drawingManager;
         let selectedShape;
@@ -25,15 +27,18 @@
         let area = 0;
 
         function initMap() {
-            // Crea una mappa centrata sull'Italia con il layer satellitare
-            map = new google.maps.Map(document.getElementById("map"), {
+            // Creazione della mappa centrata su Roma
+            let map = new google.maps.Map(document.getElementById("map"), {
                 center: { lat: 41.9028, lng: 12.4964 }, // Roma, Italia
                 zoom: 6,
                 mapTypeId: 'satellite'
             });
 
-            // Inizializza il Drawing Manager per disegnare poligoni
-            drawingManager = new google.maps.drawing.DrawingManager({
+            // Aggiungi messaggi di log per verificare se la mappa viene caricata
+            console.log("Mappa inizializzata correttamente.");
+
+            // Configura il Drawing Manager per il disegno di poligoni
+            let drawingManager = new google.maps.drawing.DrawingManager({
                 drawingMode: google.maps.drawing.OverlayType.POLYGON,
                 drawingControl: true,
                 drawingControlOptions: {
@@ -51,15 +56,21 @@
             });
             drawingManager.setMap(map);
 
-            // Evento per il completamento del disegno
+            // Aggiungi un messaggio di log quando il disegno è completo
             google.maps.event.addListener(drawingManager, 'overlaycomplete', function(event) {
                 if (event.type === google.maps.drawing.OverlayType.POLYGON) {
+                    //console.log("Poligono disegnato:", event.overlay.getPath().getArray());
+                    
                     // Rimuovi eventuali poligoni precedenti
                     if (selectedShape) {
                         selectedShape.setMap(null);
                     }
                     selectedShape = event.overlay;
-                    
+
+                    // Calcola l'area del poligono e loggala
+                    //let area = google.maps.geometry.spherical.computeArea(event.overlay.getPath());
+                    //console.log("Area del poligono:", area, "metri quadrati");
+
                     // Calcola l'area del poligono e ottieni le coordinate
                     area = google.maps.geometry.spherical.computeArea(selectedShape.getPath());
                     coordinates = selectedShape.getPath().getArray().map(latlng => ({
@@ -68,12 +79,18 @@
                     }));
                     document.getElementById("info").innerHTML = "Area: " + area.toFixed(2) + " metri quadrati";
 
+
                     // Aggiungi eventi per aggiornare l'area e le coordinate in caso di modifica del poligono
                     google.maps.event.addListener(selectedShape.getPath(), 'set_at', updateArea);
                     google.maps.event.addListener(selectedShape.getPath(), 'insert_at', updateArea);
+
+
+                    // Mostra l'area calcolata nell'elemento info
+                    //document.getElementById("info").innerHTML = "Area: " + area.toFixed(2) + " metri quadrati";
                 }
             });
         }
+
 
         // Funzione per aggiornare l'area e le coordinate quando il poligono viene modificato
         function updateArea() {
@@ -84,6 +101,7 @@
             }));
             document.getElementById("info").innerHTML = "Area: " + area.toFixed(2) + " metri quadrati";
         }
+
 
         // Funzione per inviare i dati a Glide
         function sendData() {
@@ -112,8 +130,10 @@
             });
         }
 
-        // Inizializza la mappa
-        window.initMap = initMap;
+
+
+        // Carica la mappa quando la finestra si carica
+        window.onload = initMap;
     </script>
 </body>
 </html>
