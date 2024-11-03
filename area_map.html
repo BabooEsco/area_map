@@ -57,6 +57,12 @@
             // Mostra l'area in un popup
             layer.bindPopup("Area: " + area.toFixed(2) + " metri quadrati").openPopup();
         });
+
+        var coordinates = layer.getLatLngs()[0].map(function(latlng) {
+    return [latlng.lng, latlng.lat];
+});
+console.log("Coordinate del poligono:", coordinates);
+
     </script>
 </body>
 </html>
